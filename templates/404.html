@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}404 — Not Found · AniMatch{% endblock %}
+
+{% block content %}
+  <div class="error-page">
+
+    <span class="error-code">404</span>
+
+    <h2 class="error-title">Page Not Found</h2>
+    <p class="error-sub">This page doesn't exist or was moved.</p>
+
+    <div class="error-actions">
+      <a href="/" class="button btn-full" style="max-width: 220px;">
+        Go Home →
+      </a>
+      <a href="javascript:history.back()" class="button-ghost button" style="font-size: 0.82rem; padding: 0.5rem 1rem;">
+        ← Go Back
+      </a>
+    </div>
+
+  </div>
+{% endblock %}

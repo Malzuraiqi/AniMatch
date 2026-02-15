@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}AniMatch{% endblock %}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="../static/favicon-48x48.png">
+    <link rel="icon" type="image/png" sizes="180x180" href="../static/favicon-180x180.png">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+
+  <body>
+
+    <!-- Top progress bar -->
+    <div id="progress-bar"></div>
+
+    <header>
+      <a href="/" class="site-title" style="text-decoration:none;">
+        Ani<span>Match</span><span style="color: var(--text-3); font-weight: 400;"></span>
+      </a>
+      <p class="site-tagline">Discover your next watch</p>
+    </header>
+
+    <main class="container page-reveal">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-stack" aria-live="polite">
+          {% for category, message in messages %}
+            <article class="flash-toast flash-{{ category }}" role="status">
+              <div class="flash-icon"></div>
+              <div class="flash-body">
+                <p class="flash-title">
+                  {% if category == 'success' %}Success
+                  {% elif category == 'error' %}Error
+                  {% else %}Notice{% endif %}
+                </p>
+                <p class="flash-message">{{ message }}</p>
+              </div>
+              <button
+                type="button"
+                class="flash-close"
+                aria-label="Dismiss"
+                onclick="dismissToast(this.parentElement)"
+              >✕</button>
+            </article>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <footer>
+      Powered by <span>AniList</span> &amp; <span>Gemini AI</span>
+    </footer>
+
+    <!-- Global JS -->
+    <script>
+      /* ── Progress bar ───────────────────────────────────── */
+      const bar = document.getElementById('progress-bar');
+
+      function startProgress() {
+        bar.style.opacity = '1';
+        bar.style.width = '0%';
+        let w = 0;
+        const tick = setInterval(() => {
+          w += Math.random() * 18;
+          if (w >= 85) { clearInterval(tick); w = 85; }
+          bar.style.width = w + '%';
+        }, 150);
+        return tick;
+      }
+
+      function finishProgress() {
+        bar.classList.add('done');
+        setTimeout(() => { bar.classList.remove('done'); bar.style.width = '0'; bar.style.opacity = '1'; }, 600);
+      }
+
+      /* Start on page load, finish when ready */
+      const _tick = startProgress();
+      window.addEventListener('DOMContentLoaded', () => {
+        clearInterval(_tick);
+        finishProgress();
+      });
+
+      /* Trigger on navigation */
+      document.addEventListener('click', e => {
+        const a = e.target.closest('a[href]');
+        if (a && !a.href.startsWith('javascript') && a.href !== location.href) {
+          startProgress();
+        }
+      });
+
+      document.addEventListener('submit', () => startProgress());
+
+      /* ── Toast auto-dismiss ─────────────────────────────── */
+      function dismissToast(el) {
+        el.classList.add('flash-hide');
+        setTimeout(() => el.remove(), 300);
+      }
+
+      setTimeout(() => {
+        document.querySelectorAll('.flash-toast').forEach((el, i) => {
+          setTimeout(() => dismissToast(el), i * 120);
+        });
+      }, 4500);
+
+      /* ── Button loading state ───────────────────────────── */
+      document.addEventListener('submit', e => {
+        const form = e.target;
+        const btn = form.querySelector('button[type="submit"]:not(:disabled)');
+        if (btn) {
+          btn.classList.add('loading');
+          btn.disabled = true;
+        }
+      });
+
+      /* ── Ripple effect on rating buttons ────────────────── */
+      document.addEventListener('click', e => {
+        const btn = e.target.closest('.rating-btn');
+        if (!btn) return;
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        const size = Math.max(btn.clientWidth, btn.clientHeight);
+        const rect = btn.getBoundingClientRect();
+        ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px;`;
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove());
+      });
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}AniMatch — Find Your Next Watch{% endblock %}
+
+{% block content %}
+
+  <div class="page-header" style="margin-bottom: 1.75rem;">
+    <h2>Find Your Match</h2>
+  </div>
+
+  <!-- Pro Tip -->
+  <div class="pro-tip">
+    <p class="tip-label">✦ Pro Tip</p>
+    <p>Add more anime to your <strong style="color: var(--text-1);">Planning</strong> list on AniList before starting. The more titles, the smarter the recommendations. Users with less than 10 <strong style="color: var(--text-1);">Completed</strong> entries won't load.</p>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Form -->
+  <form action="/" method="POST" class="space-y" id="matchForm">
+
+    <div class="field">
+      <label for="username">AniList Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        placeholder="e.g., DOOOFy"
+        required
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span class="field-hint">We'll fetch your completed &amp; planning lists from AniList.</span>
+    </div>
+
+    <button type="submit" class="btn-full" style="margin-top: 1.5rem;">
+      <span class="btn-text">Start Matching →</span>
+    </button>
+
+  </form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('username').focus();
+</script>
+{% endblock %}

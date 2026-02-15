@@ -1,0 +1,185 @@
+{% extends "base.html" %} {% block title %}Rate Anime — AniMatch{% endblock
+%} {% block content %}
+
+<!-- Header row -->
+<div class="page-header">
+  <h2>Rate This Anime</h2>
+  <span class="progress-badge">{{ current_index }} / {{ total }}</span>
+</div>
+
+<!-- Progress track -->
+<div class="progress-track">
+  <div
+    class="progress-fill"
+    id="progressFill"
+    style="width: {{ ((current_index - 1) / total * 100) | round(1) }}%"
+  ></div>
+</div>
+
+<!-- Anime Card -->
+<div class="anime-card">
+  <div class="anime-card-inner">
+    {% if anime.cover_image %}
+    <img
+      src="{{ anime.cover_image }}"
+      alt="{{ anime.title }}"
+      class="anime-cover"
+      loading="lazy"
+    />
+    {% else %}
+    <div class="anime-cover-placeholder">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="1.5"
+          d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.5a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+        />
+      </svg>
+    </div>
+    {% endif %}
+
+    <div class="anime-meta">
+      <p class="anime-title">{{ anime.title }}</p>
+
+      {% if anime.genres %}
+      <div class="anime-genres">
+        {% for genre in anime.genres[:4] %}
+        <span class="genre-tag">{{ genre }}</span>
+        {% endfor %}
+      </div>
+      {% endif %} {% if anime.mean_score %}
+      <div class="anime-score">
+        <span class="score-dot"></span>
+        AniList Rating: {{ anime.mean_score }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Rating Form -->
+<form id="ratingForm" action="{{ url_for('rate') }}" method="POST">
+  <input type="hidden" name="index" value="{{ current_index - 1 }}" />
+  <input type="hidden" name="rating" id="selectedRating" value="" />
+
+  <!-- Rating buttons -->
+  <div style="margin-bottom: 1.25rem">
+    <span class="rating-label">Your rating (1–10)</span>
+
+    <div class="rating-grid">
+      {% for i in range(1, 11) %}
+      <button
+        type="button"
+        class="rating-btn"
+        data-rating="{{ i }}"
+        aria-label="Rate {{ i }}"
+      >
+        {{ i }}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="field" style="margin-bottom: 1.5rem">
+    <label for="feedback">
+      Feedback
+      <span
+        style="
+          color: var(--text-3);
+          text-transform: none;
+          letter-spacing: 0;
+          font-weight: 400;
+          font-size: 0.75rem;
+        "
+        >— optional, helps AI</span
+      >
+    </label>
+    <textarea
+      id="feedback"
+      name="feedback"
+      rows="2"
+      placeholder="What worked or didn't? e.g. great animation, slow pacing..."
+    ></textarea>
+  </div>
+
+  <!-- Submit -->
+  <button type="submit" id="submitBtn" class="btn-full" disabled>
+    <span class="btn-text">
+      {% if current_index == total %} Finish &amp; Get Recommendations → {% else
+      %} Next Anime → {% endif %}
+    </span>
+  </button>
+</form>
+
+<!-- Shortcuts -->
+<div class="shortcuts">
+  <span class="shortcut-hint">1–9 rate</span>
+  <span class="shortcut-hint">0 = 10</span>
+  <span class="shortcut-hint">{% if current_index == total %} Click on the submit button {% else
+      %} ⏎ submit {% endif %}</span>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  (function () {
+    const ratingInput = document.getElementById('selectedRating');
+    const submitBtn   = document.getElementById('submitBtn');
+    const ratingForm  = document.getElementById('ratingForm');
+    const ratingBtns  = document.querySelectorAll('.rating-btn');
+    const isFinalStep = {{ 'true' if current_index == total else 'false' }};
+
+    /* Animate progress bar to current step */
+    const totalAnime  = {{ total }};
+    const currentIdx  = {{ current_index }};
+    requestAnimationFrame(() => {
+      document.getElementById('progressFill').style.width =
+        (currentIdx / totalAnime * 100) + '%';
+    });
+
+    function setRating(value) {
+      ratingInput.value = value;
+      ratingBtns.forEach(b => b.classList.remove('selected'));
+      const active = document.querySelector(`.rating-btn[data-rating="${value}"]`);
+      if (active) active.classList.add('selected');
+      submitBtn.disabled = false;
+    }
+
+    /* Click handlers */
+    ratingBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setRating(btn.getAttribute('data-rating'));
+      });
+    });
+
+    ratingForm.addEventListener('submit', () => {
+      if (!isFinalStep) return;
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+    });
+
+    /* Keyboard shortcuts */
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        setRating(parseInt(e.key, 10));
+      } else if (e.key === '0') {
+        e.preventDefault();
+        setRating(10);
+      } else if (e.key === 'Enter' && !submitBtn.disabled && !isFinalStep) {
+        e.preventDefault();
+        document.getElementById('ratingForm').submit();
+      }
+    });
+  })();
+</script>
+{% endblock %}
+

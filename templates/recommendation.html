@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations Anime - AniMatch{% endblock %}
+
+{% block content %}
+{% set new_items = new_recommendations or [] %}
+{% set continuation_items = continuations or [] %}
+{% set total_items = (new_items|length) + (continuation_items|length) %}
+
+<div class="page-header recommendation-header">
+  <h2>Your Recommendations</h2>
+  {% if total_items %}
+  <span class="progress-badge">{{ total_items }} Picks</span>
+  {% endif %}
+</div>
+
+<p class="recommendation-sub">
+  Based on your ratings and feedback, these anime are most likely to match your taste.
+</p>
+
+{% if total_items %}
+<div class="rec-layout" id="recLayout">
+  <section class="rec-list-panel" aria-label="Recommended anime lists">
+    <section class="rec-group">
+      <div class="rec-group-head">
+        <h3>New Recommendations</h3>
+        <span class="progress-badge">{{ new_items|length }}</span>
+      </div>
+
+      {% if new_items %}
+      <div class="rec-card-grid">
+        {% for anime in new_items %}
+        {% set anime_title = anime.title or 'Unknown Title' %}
+        {% set cover_image = anime.cover_image|default(None, true) %}
+        {% set match_score = anime.match_score|default(None, true) %}
+        {% set site_url = anime.site_url|default('', true) %}
+        {% set reason = anime.reason|default('', true) %}
+        {% set genres = anime.genres|default([], true) %}
+        {% set anime_payload = {
+          "section": "New Recommendation",
+          "title": anime_title,
+          "cover_image": cover_image,
+          "match_score": match_score,
+          "site_url": site_url,
+          "reason": reason,
+          "genres": genres
+        } %}
+
+        <article class="rec-choice-wrap">
+          <button
+            type="button"
+            class="rec-choice-card"
+            data-anime='{{ anime_payload | tojson | forceescape }}'
+            aria-label="Show details for {{ anime_title }}"
+          >
+            {% if cover_image %}
+            <img src="{{ cover_image }}" alt="{{ anime_title }} cover" class="rec-choice-cover" loading="lazy" />
+            {% else %}
+            <div class="rec-choice-cover rec-choice-cover-placeholder" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.5a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+                />
+              </svg>
+            </div>
+            {% endif %}
+
+            <div class="rec-choice-meta">
+              <p class="anime-title">{{ anime_title }}</p>
+              {% if match_score is not none %}
+              <div class="anime-score">
+                <span class="score-dot"></span>
+                Predicted Match: {{ match_score }}/10
+              </div>
+              {% endif %}
+            </div>
+          </button>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="anime-card" style="margin-bottom: 0;">
+        <p style="color: var(--text-2);">No new recommendations were found this time.</p>
+      </div>
+      {% endif %}
+    </section>
+
+    {% if continuation_items %}
+    <section class="rec-group">
+      <div class="rec-group-head">
+        <h3>Continuations</h3>
+        <span class="progress-badge">{{ continuation_items|length }}</span>
+      </div>
+
+      <div class="rec-card-grid">
+        {% for anime in continuation_items %}
+        {% set anime_title = anime.title or 'Unknown Title' %}
+        {% set cover_image = anime.cover_image|default(None, true) %}
+        {% set match_score = anime.match_score|default(None, true) %}
+        {% set site_url = anime.site_url|default('', true) %}
+        {% set reason = anime.reason|default('', true) %}
+        {% set genres = anime.genres|default([], true) %}
+        {% set anime_payload = {
+          "section": "Continuation",
+          "title": anime_title,
+          "cover_image": cover_image,
+          "match_score": match_score,
+          "site_url": site_url,
+          "reason": reason,
+          "genres": genres
+        } %}
+
+        <article class="rec-choice-wrap">
+          <button
+            type="button"
+            class="rec-choice-card"
+            data-anime='{{ anime_payload | tojson | forceescape }}'
+            aria-label="Show details for {{ anime_title }}"
+          >
+            {% if cover_image %}
+            <img src="{{ cover_image }}" alt="{{ anime_title }} cover" class="rec-choice-cover" loading="lazy" />
+            {% else %}
+            <div class="rec-choice-cover rec-choice-cover-placeholder" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.5a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+                />
+              </svg>
+            </div>
+            {% endif %}
+
+            <div class="rec-choice-meta">
+              <p class="anime-title">{{ anime_title }}</p>
+              {% if match_score is not none %}
+              <div class="anime-score">
+                <span class="score-dot"></span>
+                Predicted Match: {{ match_score }}/10
+              </div>
+              {% endif %}
+            </div>
+          </button>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </section>
+
+  <aside class="rec-detail-panel" id="recDetailPanel" aria-live="polite">
+    <div class="rec-detail-card">
+      <span class="progress-badge rec-detail-kicker" id="recDetailSection">Recommendation</span>
+
+      <img id="recDetailCover" src="" alt="" class="rec-detail-cover" hidden />
+      <div id="recDetailCoverPlaceholder" class="rec-detail-cover rec-choice-cover-placeholder" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.5a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+          />
+        </svg>
+      </div>
+
+      <h3 id="recDetailTitle" class="rec-detail-title"></h3>
+
+      <div class="anime-score" id="recDetailScoreWrap" hidden>
+        <span class="score-dot"></span>
+        <span id="recDetailScore"></span>
+      </div>
+
+      <div class="anime-genres rec-detail-genres" id="recDetailGenres" hidden></div>
+
+      <div class="rec-detail-reason">
+        <p class="rec-detail-reason-label">Why this was recommended</p>
+        <p id="recDetailReason"></p>
+      </div>
+
+      <a
+        id="recDetailLink"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="button btn-full"
+      >
+        Open on AniList ->
+      </a>
+    </div>
+  </aside>
+</div>
+{% else %}
+<div class="anime-card">
+  <p style="color: var(--text-2); margin-bottom: 1rem;">
+    No recommendations are available yet. Complete the rating flow first.
+  </p>
+  <a href="/" class="button">Start Matching -></a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const main = document.querySelector('main.container');
+    if (main) main.classList.add('recommendation-wide');
+
+    const cards = Array.from(document.querySelectorAll('.rec-choice-card'));
+    if (!cards.length) return;
+
+    const detailSection = document.getElementById('recDetailSection');
+    const detailCover = document.getElementById('recDetailCover');
+    const detailCoverPlaceholder = document.getElementById('recDetailCoverPlaceholder');
+    const detailTitle = document.getElementById('recDetailTitle');
+    const detailScoreWrap = document.getElementById('recDetailScoreWrap');
+    const detailScore = document.getElementById('recDetailScore');
+    const detailGenres = document.getElementById('recDetailGenres');
+    const detailReason = document.getElementById('recDetailReason');
+    const detailLink = document.getElementById('recDetailLink');
+
+    function readPayload(card) {
+      try {
+        return JSON.parse(card.dataset.anime || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function renderCard(payload, card) {
+      cards.forEach((node) => node.classList.remove('is-active'));
+      card.classList.add('is-active');
+
+      const title = payload.title || 'Unknown Title';
+      const score = payload.match_score;
+      const reason = payload.reason || 'No reason was provided for this recommendation.';
+      const siteUrl = payload.site_url || '#';
+      const cover = payload.cover_image;
+      const section = payload.section || 'Recommendation';
+      const genres = Array.isArray(payload.genres) ? payload.genres : [];
+
+      detailSection.textContent = section;
+      detailTitle.textContent = title;
+      detailReason.textContent = reason;
+
+      if (score !== null && score !== undefined && score !== '') {
+        detailScoreWrap.hidden = false;
+        detailScore.textContent = `Predicted Match: ${score}/10`;
+      } else {
+        detailScoreWrap.hidden = true;
+      }
+
+      detailGenres.innerHTML = '';
+      if (genres.length) {
+        detailGenres.hidden = false;
+        genres.slice(0, 6).forEach((genre) => {
+          const tag = document.createElement('span');
+          tag.className = 'genre-tag';
+          tag.textContent = genre;
+          detailGenres.appendChild(tag);
+        });
+      } else {
+        detailGenres.hidden = true;
+      }
+
+      if (cover) {
+        detailCover.hidden = false;
+        detailCover.src = cover;
+        detailCover.alt = `${title} cover`;
+        detailCoverPlaceholder.hidden = true;
+      } else {
+        detailCover.hidden = true;
+        detailCover.removeAttribute('src');
+        detailCoverPlaceholder.hidden = false;
+      }
+
+      if (siteUrl && siteUrl !== '#') {
+        detailLink.href = siteUrl;
+        detailLink.classList.remove('is-disabled');
+        detailLink.setAttribute('aria-disabled', 'false');
+      } else {
+        detailLink.href = '#';
+        detailLink.classList.add('is-disabled');
+        detailLink.setAttribute('aria-disabled', 'true');
+      }
+    }
+
+    cards.forEach((card) => {
+      card.addEventListener('click', () => renderCard(readPayload(card), card));
+    });
+
+    renderCard(readPayload(cards[0]), cards[0]);
+  })();
+</script>
+{% endblock %}
