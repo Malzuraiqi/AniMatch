@@ -43,12 +43,13 @@ Connect your AniList profile, rate a few shows, and let Gemini find the perfect 
 ## Screenshots
 
 ![Home page](screenshots/home.png)
-*Only needs the username*
 
 ![Rating page](screenshots/rating.png)
+
 *Rate 10 anime with keyboard shortcuts*
 
 ![Recommendations page](screenshots/recommendations.png)
+
 *Recommendations split into continuations, new discoveries, and trending picks*
 
 ## Credits
