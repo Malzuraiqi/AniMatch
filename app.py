@@ -16,8 +16,10 @@ RATING_STATE = {}
 # to use that variable just add it as an argument to the function like index(variable_name)
 # to add a converter (specify the type) just add the converter <converter:variable_name>
 # converters: none(string), int, path, float, uuid
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/', methods=['POST', 'GET', 'HEAD'])
 def index():
+    if request.method == 'HEAD':
+        return '', 200
     if request.method == 'GET':
         flashes = session.get('_flashes')
         session.clear()
