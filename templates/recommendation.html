@@ -5,7 +5,8 @@
 {% block content %}
 {% set new_items = new_recommendations or [] %}
 {% set continuation_items = continuations or [] %}
-{% set total_items = (new_items|length) + (continuation_items|length) %}
+{% set trending_items = trending_recommendations or [] %}
+{% set total_items = (new_items|length) + (continuation_items|length) + (trending_items|length) %}
 
 <div class="page-header recommendation-header">
   <h2>Your Recommendations</h2>
@@ -36,6 +37,9 @@
         {% set site_url = anime.site_url|default('', true) %}
         {% set reason = anime.reason|default('', true) %}
         {% set genres = anime.genres|default([], true) %}
+        {% set tags = anime.tags|default([], true) %}
+        {% set studios = anime.studios|default([], true) %}
+        {% set matching_elements = anime.matchingElements|default([], true) %}
         {% set anime_payload = {
           "section": "New Recommendation",
           "title": anime_title,
@@ -43,7 +47,10 @@
           "match_score": match_score,
           "site_url": site_url,
           "reason": reason,
-          "genres": genres
+          "genres": genres,
+          "tags": tags,
+          "studios": studios,
+          "matchingElements": matching_elements
         } %}
 
         <article class="rec-choice-wrap">
@@ -103,6 +110,9 @@
         {% set site_url = anime.site_url|default('', true) %}
         {% set reason = anime.reason|default('', true) %}
         {% set genres = anime.genres|default([], true) %}
+        {% set tags = anime.tags|default([], true) %}
+        {% set studios = anime.studios|default([], true) %}
+        {% set matching_elements = anime.matchingElements|default([], true) %}
         {% set anime_payload = {
           "section": "Continuation",
           "title": anime_title,
@@ -110,7 +120,79 @@
           "match_score": match_score,
           "site_url": site_url,
           "reason": reason,
-          "genres": genres
+          "genres": genres,
+          "tags": tags,
+          "studios": studios,
+          "matchingElements": matching_elements
+        } %}
+
+        <article class="rec-choice-wrap">
+          <button
+            type="button"
+            class="rec-choice-card"
+            data-anime='{{ anime_payload | tojson | forceescape }}'
+            aria-label="Show details for {{ anime_title }}"
+          >
+            {% if cover_image %}
+            <img src="{{ cover_image }}" alt="{{ anime_title }} cover" class="rec-choice-cover" loading="lazy" />
+            {% else %}
+            <div class="rec-choice-cover rec-choice-cover-placeholder" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M15 10l4.553-2.069A1 1 0 0121 8.876V15.5a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+                />
+              </svg>
+            </div>
+            {% endif %}
+
+            <div class="rec-choice-meta">
+              <p class="anime-title">{{ anime_title }}</p>
+              {% if match_score is not none %}
+              <div class="anime-score">
+                <span class="score-dot"></span>
+                Predicted Match: {{ match_score }}/10
+              </div>
+              {% endif %}
+            </div>
+          </button>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if trending_items %}
+    <section class="rec-group">
+      <div class="rec-group-head">
+        <h3>Trending Recommendations</h3>
+        <span class="progress-badge">{{ trending_items|length }}</span>
+      </div>
+
+      <div class="rec-card-grid">
+        {% for anime in trending_items %}
+        {% set anime_title = anime.title or 'Unknown Title' %}
+        {% set cover_image = anime.cover_image|default(None, true) %}
+        {% set match_score = anime.match_score|default(None, true) %}
+        {% set site_url = anime.site_url|default('', true) %}
+        {% set reason = anime.reason|default('', true) %}
+        {% set genres = anime.genres|default([], true) %}
+        {% set tags = anime.tags|default([], true) %}
+        {% set studios = anime.studios|default([], true) %}
+        {% set matching_elements = anime.matchingElements|default([], true) %}
+        {% set anime_payload = {
+          "section": "Trending Recommendation",
+          "title": anime_title,
+          "cover_image": cover_image,
+          "match_score": match_score,
+          "site_url": site_url,
+          "reason": reason,
+          "genres": genres,
+          "tags": tags,
+          "studios": studios,
+          "matchingElements": matching_elements
         } %}
 
         <article class="rec-choice-wrap">
@@ -176,6 +258,9 @@
       </div>
 
       <div class="anime-genres rec-detail-genres" id="recDetailGenres" hidden></div>
+      <div class="anime-genres rec-detail-genres" id="recDetailTags" hidden></div>
+      <div class="anime-genres rec-detail-genres" id="recDetailStudios" hidden></div>
+      <div class="anime-genres rec-detail-genres" id="recDetailMatchingElements" hidden></div>
 
       <div class="rec-detail-reason">
         <p class="rec-detail-reason-label">Why this was recommended</p>
@@ -220,6 +305,9 @@
     const detailScoreWrap = document.getElementById('recDetailScoreWrap');
     const detailScore = document.getElementById('recDetailScore');
     const detailGenres = document.getElementById('recDetailGenres');
+    const detailTags = document.getElementById('recDetailTags');
+    const detailStudios = document.getElementById('recDetailStudios');
+    const detailMatchingElements = document.getElementById('recDetailMatchingElements');
     const detailReason = document.getElementById('recDetailReason');
     const detailLink = document.getElementById('recDetailLink');
 
@@ -242,6 +330,9 @@
       const cover = payload.cover_image;
       const section = payload.section || 'Recommendation';
       const genres = Array.isArray(payload.genres) ? payload.genres : [];
+      const tags = Array.isArray(payload.tags) ? payload.tags : [];
+      const studios = Array.isArray(payload.studios) ? payload.studios : [];
+      const matchingElements = Array.isArray(payload.matchingElements) ? payload.matchingElements : [];
 
       detailSection.textContent = section;
       detailTitle.textContent = title;
@@ -254,18 +345,29 @@
         detailScoreWrap.hidden = true;
       }
 
-      detailGenres.innerHTML = '';
-      if (genres.length) {
-        detailGenres.hidden = false;
-        genres.slice(0, 6).forEach((genre) => {
-          const tag = document.createElement('span');
-          tag.className = 'genre-tag';
-          tag.textContent = genre;
-          detailGenres.appendChild(tag);
+      function renderMetaGroup(container, label, values, limit) {
+        container.innerHTML = '';
+        if (!values.length) {
+          container.hidden = true;
+          return;
+        }
+        container.hidden = false;
+        const groupLabel = document.createElement('span');
+        groupLabel.className = 'rating-label';
+        groupLabel.textContent = label;
+        container.appendChild(groupLabel);
+        values.slice(0, limit).forEach((value) => {
+          const chip = document.createElement('span');
+          chip.className = 'genre-tag';
+          chip.textContent = value;
+          container.appendChild(chip);
         });
-      } else {
-        detailGenres.hidden = true;
       }
+
+      renderMetaGroup(detailGenres, 'Genres', genres, 6);
+      renderMetaGroup(detailTags, 'Tags', tags, 6);
+      renderMetaGroup(detailStudios, 'Studios', studios, 4);
+      renderMetaGroup(detailMatchingElements, 'Matching Elements', matchingElements, 6);
 
       if (cover) {
         detailCover.hidden = false;

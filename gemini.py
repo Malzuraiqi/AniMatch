@@ -1,17 +1,21 @@
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
+from anilist import get_trending_list, normalize_anime
 import os
 import json
+import requests
 
 load_dotenv()
 API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent'
+api_url = f"{GEMINI_API_URL}?key={API_KEY}"
 
 def get_recommendations(ratings, planning_list, completed_titles):
-    client = genai.Client(api_key=API_KEY)
-
     required_fields = ['id','title','genres']
     planning_list_shorten = [{key: anime[key] for key in required_fields} for anime in planning_list]
+
+    trending_list = get_trending_list()
+    normalized_trending = [normalize_anime(anime, get_url=True) for anime in trending_list]
+    trending_list_shorten = [{key: anime[key] for key in required_fields} for anime in normalized_trending]
 
     contents = f"""
         As an expert Anime Recommendation Engine, your task is to analyze a user's taste and filter their planning list into a structured JSON response.
@@ -20,62 +24,88 @@ def get_recommendations(ratings, planning_list, completed_titles):
         - User's Rated List: {ratings}
         - User's Planning List: {planning_list_shorten}
         - User's Completed Titles: {completed_titles}
+        - Trending Anime List: {trending_list_shorten}
 
-        ### TASK STEPS
-        1. **Taste Analysis:** Identify patterns in studios, genres, and specific feedback from the Rated List.
-        2. **Category 1 (Continuations):** 
-            - Look at **both** the User's Rated List and the User's Completed Titles list.
-            - Identify any anime in the Planning List that are direct continuations (sequels, movies, prequels, or same-series spin‑offs) of any title in **either** list.
-            - For continuations where the original show was **rated** (i.e., it appears in the Rated List), use its score and feedback to inform the match_score and reason.
-            - For continuations where the original show was **completed but not rated** (i.e., it's only in the Completed Titles list), assume the user enjoyed it enough to finish it, and use that as a positive signal.
-        3. **Category 2 (New Recommendations):** Select NEW discoveries from the Planning List that match the user's taste. 
-        4. **THE 6-TITLE LIMIT & DISTRIBUTION:** - You must return a TOTAL of exactly 6 anime.
-            - **Continuations Limit:** Include a maximum of 3 continuations. If there are more than 3, select the 3 with the highest predicted match_score.
-            - **Filling the List:** The remaining slots (at least 3, but up to 6 if no continuations exist) MUST be filled with New Recommendations to reach the total of 6.
-            - If zero continuations exist, the "continuations" list MUST be an empty array `[]`.
+        Recommend top must-watch animes based on the user's rated list, planning list, completed titles, and trending anime list. 
 
-        ### OUTPUT RULES
+        Consider the following for recommendations:
+        - Analyze the genres and tags from the user's highly-rated anime.
+        - Review the reasons provided for their ratings.
+        - Take into account studio preferences.
+        - Examine themes and story elements from anime descriptions.
+        - Identify patterns in their rating behavior.
+
+        ### Output Rules
         - **Strict JSON:** Return ONLY a JSON object. No preamble or conversational filler.
-        - **Double Brackets:** Use `{{` and `}}` for the JSON structure to ensure f-string compatibility.
         - **Exact Titles:** The "title" field must match the string in the planning list EXACTLY.
-        - **Personalized Reasoning:** The "reason" must use "You" and "Your." It MUST reference specific titles from the user's rated list, their numerical scores, and any quoted feedback they provided.
+        - **Personalized Reasoning:** Provide detailed reasoning explaining why each recommendation matches the user's preferences.
+        - **Matching Elements:** Include key matching elements that justify the recommendations.
+        - **Trending Recommendations:** for the trending recommendations make sure they are taken from the Trending Anime List only
+        - **Limits:** 
+            - A maximum of 4 new recommendations.
+            - A maximum of 3 continuations.
+            - A maximum of 3 trending recommendations.
 
-        ### REQUIRED OUTPUT FORMAT
+        ### Required Output Format
         {{
         "continuations": [
             {{
             "title": "Exact Title from Planning List",
             "match_score": 9.8,
-            "reason": "Since you rated [Show A] a 9/10 and loved the '[Quote]', this sequel is a must-watch..."
+            "reason": "Since you rated [Show A] a 9/10 and loved the '[Quote]', this sequel is a must-watch...",
+            "matchingElements": ["element1", "element2", "element3"]
             }}
         ],
         "new_recommendations": [
             {{
             "title": "Exact Title from Planning List",
             "match_score": 8.5,
-            "reason": "Because you enjoyed the dark atmosphere of [Show B] (8/10), this [Studio] production offers a similar vibe..."
+            "reason": "Based on your love of X and Y, this anime features...",
+            "matchingElements": ["element1", "element2", "element3"]
+            }}
+        ],
+        "trending_recommendations": [
+            {{
+            "title": "Exact Title from Planning List",
+            "match_score": 8.5,
+            "reason": "Based on your love of X and Y, this anime features...",
+            "matchingElements": ["element1", "element2", "element3"]
             }}
         ]
         }}
     """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents=contents,
-        config=types.GenerateContentConfig(response_mime_type='application/json')
+    response = requests.post(
+        api_url,
+        headers={'Content-Type': 'application/json'},
+        json={
+            'contents': [{
+                'parts': [{'text': contents}]
+            }],
+            'generationConfig': {
+                'temperature': 0.7,
+                'response_mime_type': 'application/json'
+            }
+        },
+        timeout=30
     )
 
-    return merge_recommendations(response.text, planning_list)
+    response_data = response.json()
+    response_text = response_data['candidates'][0]['content']['parts'][0]['text']
 
-def merge_recommendations(response, planning_list):
+    return merge_recommendations(response_text, planning_list, normalized_trending)
+
+def merge_recommendations(response, planning_list, trending_list):
     recomendations = json.loads(response)
 
     lookup = {item['title']: item for item in planning_list}
+    for item in trending_list:
+        lookup[item['title']] = item
 
     def merge(rec_list):
         merged_list = []
         for rec in rec_list:
-            title = rec['title']
+            title = rec.get('title')
             if title in lookup:
                 full_list = lookup[title].copy()
                 full_list.update(rec)
@@ -84,5 +114,6 @@ def merge_recommendations(response, planning_list):
 
     continuations = merge(recomendations.get('continuations', []))
     new_recommendations = merge(recomendations.get('new_recommendations', []))
+    trending_recommendations = merge(recomendations.get('trending_recommendations', []))
 
-    return continuations, new_recommendations
+    return continuations, new_recommendations, trending_recommendations

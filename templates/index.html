@@ -1,48 +1,56 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block title %}AniMatch — Find Your Next Watch{%
+endblock %} {% block content %}
 
-{% block title %}AniMatch — Find Your Next Watch{% endblock %}
+<div class="page-header" style="margin-bottom: 1.75rem">
+  <h2>Find Your Match</h2>
+</div>
 
-{% block content %}
+<!-- Pro Tip -->
+<div class="pro-tip">
+  <p class="tip-label">✦ Pro Tip</p>
+  <div class="text-sm text-gray-300 mt-2 space-y-2">
+    <p>
+      • Make sure your Planning list has some anime in it. We also pull from
+      trending shows to give you more options.
+    </p>
+    <p>
+      • Rate based on what you feel like watching right now. Love Attack on
+      Titan but not in the mood for heavy action? Go with your current vibe
+      instead.
+    </p>
+    <p>
+      • You need at least 10 completed anime on your list for this to work.
+    </p>
+  </div>
+</div>
 
-  <div class="page-header" style="margin-bottom: 1.75rem;">
-    <h2>Find Your Match</h2>
+<hr class="divider" />
+
+<!-- Form -->
+<form action="/" method="POST" class="space-y" id="matchForm">
+  <div class="field">
+    <label for="username">AniList Username</label>
+    <input
+      type="text"
+      id="username"
+      name="username"
+      placeholder="e.g., DOOOFy"
+      required
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <span class="field-hint"
+      >We'll fetch your completed &amp; planning lists from AniList.</span
+    >
   </div>
 
-  <!-- Pro Tip -->
-  <div class="pro-tip">
-    <p class="tip-label">✦ Pro Tip</p>
-    <p>Add more anime to your <strong style="color: var(--text-1);">Planning</strong> list on AniList before starting. The more titles, the smarter the recommendations. Users with less than 10 <strong style="color: var(--text-1);">Completed</strong> entries won't load.</p>
-  </div>
+  <button type="submit" class="btn-full" style="margin-top: 1.5rem">
+    <span class="btn-text">Start Matching →</span>
+  </button>
+</form>
 
-  <hr class="divider" />
-
-  <!-- Form -->
-  <form action="/" method="POST" class="space-y" id="matchForm">
-
-    <div class="field">
-      <label for="username">AniList Username</label>
-      <input
-        type="text"
-        id="username"
-        name="username"
-        placeholder="e.g., DOOOFy"
-        required
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <span class="field-hint">We'll fetch your completed &amp; planning lists from AniList.</span>
-    </div>
-
-    <button type="submit" class="btn-full" style="margin-top: 1.5rem;">
-      <span class="btn-text">Start Matching →</span>
-    </button>
-
-  </form>
-
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-  document.getElementById('username').focus();
+  document.getElementById("username").focus();
 </script>
 {% endblock %}

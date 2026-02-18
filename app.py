@@ -1,9 +1,8 @@
 from flask import Flask, render_template, request, session, flash, redirect, url_for
-from anilist import fetch_user_lists
+from anilist import fetch_user_lists, normalize_anime
 from dotenv import load_dotenv
 import os, uuid, random
 import requests
-import socket
 from gemini import get_recommendations
 
 load_dotenv()
@@ -12,53 +11,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', os.urandom(24))
 MAX_ANIME_TO_RATE = 10
 RATING_STATE = {}
-
-NETWORK_ERROR_HINT = 'Please check your internet connection and try again.'
-
-def _is_network_error(exc):
-    if isinstance(
-        exc,
-        (
-            requests.exceptions.RequestException,
-            TimeoutError,
-            socket.gaierror,
-            ConnectionError,
-        ),
-    ):
-        return True
-
-    message = str(exc).lower()
-    network_markers = (
-        'timeout',
-        'timed out',
-        'connection',
-        'dns',
-        'name resolution',
-        'getaddrinfo',
-        'unreachable',
-        'reset by peer',
-        'service unavailable',
-    )
-    return any(marker in message for marker in network_markers)
-
-def normalize_anime(media, get_url=False):
-    title_data = media.get('title') or {}
-    if get_url:
-        return {
-        'id': media.get('id'),
-        'title': title_data.get('english') or title_data.get('romaji') or 'Unknown Title',
-        'cover_image': (media.get('coverImage') or {}).get('large'),
-        'genres': media.get('genres') or [],
-        'mean_score': media.get('averageScore'),
-        'site_url': media.get('siteUrl')
-        }
-    return {
-        'id': media.get('id'),
-        'title': title_data.get('english') or title_data.get('romaji') or 'Unknown Title',
-        'cover_image': (media.get('coverImage') or {}).get('large'),
-        'genres': media.get('genres') or [],
-        'mean_score': media.get('averageScore'),
-    }
 
 # this is called a decorator, you could add variables to it using <variable_name>
 # to use that variable just add it as an argument to the function like index(variable_name)
@@ -118,9 +70,9 @@ def index():
             session['state_id'] = state_id
             return redirect(url_for('rate'))
         except requests.exceptions.Timeout:
-            flash(f'Could not reach AniList in time. {NETWORK_ERROR_HINT}', 'error')
+            flash(f'Could not reach AniList in time.', 'error')
         except requests.exceptions.RequestException:
-            flash(f'Could not connect to AniList. {NETWORK_ERROR_HINT}', 'error')
+            flash(f'Could not connect to AniList.', 'error')
         except ValueError as exc:
             flash(str(exc), 'error')
         except Exception:
@@ -197,23 +149,22 @@ def recommendation():
     completed_titles = state.get('completed_titles')
     planning_list = [state.get('anime_by_id').get(anime_id) for anime_id in planning_ids]
     try:
-        continuations, new_recommendations = get_recommendations(ratings, planning_list, completed_titles)
+        continuations, new_recommendations, trending_recommendations = get_recommendations(ratings, planning_list, completed_titles)
     except Exception as exc:
-        if _is_network_error(exc):
-            flash(f'Could not generate recommendations because of a network issue. {NETWORK_ERROR_HINT}', 'error')
-        else:
-            app.logger.exception('Failed to generate recommendations')
-            flash('Could not generate recommendations right now. Please retry in a moment.', 'error')
+        app.logger.exception('Failed to generate recommendations')
+        flash('Could not generate recommendations right now. Please retry in a moment.', 'error')
         return render_template(
             'recommendation.html',
             continuations=[],
-            new_recommendations=[]
+            new_recommendations=[],
+            trending_recommendations=[]
         ), 503
     
     return render_template(
         'recommendation.html',
         continuations=continuations,
-        new_recommendations=new_recommendations
+        new_recommendations=new_recommendations,
+        trending_recommendations=trending_recommendations
     )
 
 @app.errorhandler(404)

@@ -49,11 +49,32 @@
 
       {% if anime.genres %}
       <div class="anime-genres">
+        <span class="rating-label">Genres</span>
         {% for genre in anime.genres[:4] %}
         <span class="genre-tag">{{ genre }}</span>
         {% endfor %}
       </div>
-      {% endif %} {% if anime.mean_score %}
+      {% endif %}
+
+      {% if anime.tags %}
+      <div class="anime-genres">
+        <span class="rating-label">Tags</span>
+        {% for tag in anime.tags[:4] %}
+        <span class="genre-tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if anime.studios %}
+      <div class="anime-genres">
+        <span class="rating-label">Studios</span>
+        {% for studio in anime.studios[:3] %}
+        <span class="genre-tag">{{ studio }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if anime.mean_score %}
       <div class="anime-score">
         <span class="score-dot"></span>
         AniList Rating: {{ anime.mean_score }}
